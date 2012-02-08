@@ -1,0 +1,15 @@
+p after this paragraph it should say hello world if the actions.start() works
+
+script
+		delegate = {
+			onload: function () {
+				$('body').append('HELLO WORLD');
+				console.warn('loaded')
+			}
+		}
+		
+		actions(delegate, {
+			'/spec/visual/onload': 'onload' 
+		});
+
+		actions.start();
