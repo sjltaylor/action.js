@@ -3,36 +3,40 @@ actions.Route = (function () {
 	var parameterRegex  					= /:([\w\d-]+)/
 		, parameterReplacementRegex = /:([\w\d-]+)/g;
 
-	function Route (routeTemplate, delegate, action) {
+	function Route (routeTemplate, delegate, routesHelper, action) {
 		var route = this;
 
 		route._routeTemplate = routeTemplate;
 		route._routeRegex		 = new RegExp('^' + routeTemplate.replace(parameterReplacementRegex, '([\\w\\d-]+)') + '$')
-		
-		// find the function and the object to which it belongs...
-		route._delegate  	= null;
-		route._function   = delegate;
-		
-		action.split('.').forEach(function (memberName) {
-			route._delegate   = route._function;
-			route._function 	= route._delegate[memberName];
-			route._memberName = memberName; 
-		});
+		route._delegate			 = delegate;
+		route._actionPath		 = action.split('.');
 
-		// replace the function with a wrapper
-		route._delegate[route._memberName] = function () {
-			history.pushState({}, '', route.interpolate(arguments));
-			route._function.apply(route._delegate, arguments);
-		};
+		var memberName = route._actionPath[0];
 
-		route._functionWrapper = route._delegate[route._memberName];
+		for (var i = 0, j = 1, l = route._actionPath.length; j < l; i++, j++) {
+			routesHelper[memberName] = routesHelper[memberName] || {};
+			routesHelper = routesHelper[memberName];
+			memberName = route._actionPath[j];
+		}
+
+		routesHelper[memberName] = function () {
+			actions.goto.bind(actions, route._routeTemplate).apply(actions, arguments);
+		}
 	}
 
 	Route.prototype = {
 		apply: function (args) {
-			var route = this;
-			route._functionWrapper.apply(route._delegate, args);
-			return route.interpolate(args);
+			var route 				 = this
+				// find the function and the object to which it belongs...
+				, actionContext  = null
+				, actionFunction = route._delegate;
+		
+			route._actionPath.forEach(function (memberName) {
+				actionContext   = actionFunction
+				actionFunction 	= actionContext[memberName];
+			});
+
+			return actionFunction.apply(actionContext, args);
 		}
 	, interpolate: function (args) {
 			var route 	 				  = this

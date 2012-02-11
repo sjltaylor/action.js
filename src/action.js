@@ -1,40 +1,32 @@
 actions = (function () {
 
-	var routeHandlers;
+	var routeHandlers, routesHelper;
 
-	function loadCurrentPath () {
+	function loadCurrentPath (event) {
 		loadCurrentPath._called = true;
-		actions.goto(window.location.pathname);
-	}
-
-	window.onpopstate = loadCurrentPath;
-	window.onload = function () {
-		// onpopstate fires after onload so if the browser (such as firefox)
-		// isnt going to invoke an onpopstate onload then we do it ourselves.
-		setTimeout(function () {
-			if (!loadCurrentPath._called) loadCurrentPath();
-		}, 5);
+		actions.run(window.location.pathname);
 	}
 
 	function actions (delegate, routeActionMap) {
 		
 		if (routeHandlers) throw new Error('Routes already defined. actions() should only be called once between calls to actions.reset()');
 		routeHandlers = {};
+		routesHelper 	= {}; 
 
-		for(var route in routeActionMap) {
-			var action					 = routeActionMap[route];
-			routeHandlers[route] = new actions.Route(route, delegate, action);
+		for(var routeTemplate in routeActionMap) {
+			var action = routeActionMap[routeTemplate];
+			routeHandlers[routeTemplate] = new actions.Route(routeTemplate, delegate, routesHelper, action);
 		}
 
-		return actions;
+		return routesHelper;;
 	}
 
 	actions.reset = function () {
 		routeHandlers = null;
+		routesHelper  = null;
 	}
 
-	actions.goto = function () {
-
+	actions.run = function () {
 		var route 	= arguments[0]
 			, handler = routeHandlers[route]
 			, args 		= Array.prototype.slice.call(arguments, 1, arguments.length);
@@ -63,7 +55,31 @@ actions = (function () {
 		}
 
 		route = handler.interpolate(args);
-		handler.apply(args);
+		
+		handler.apply(args) || '';
+		
+		return route;
+	}	
+
+	actions.goto = function () {
+
+		var route = actions.run.apply(this, arguments);
+		
+		history.pushState({}, '', route)
+
+		return route;
+	}
+
+	actions.start = function () {
+		
+		if (routeHandlers) {
+			window.onpopstate = loadCurrentPath
+
+			if (/Firefox/.test(navigator.userAgent))
+			window.onload = function () {
+				loadCurrentPath();
+			}
+		}
 	}
 
 	return actions;

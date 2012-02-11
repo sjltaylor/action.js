@@ -17,7 +17,7 @@ describe('actions.Route', function () {
 		
 		it('calls the correct delegate member function', function () {
 			
-			var rh = new actions.Route('/a/path', delegate, 'function1');
+			var rh = new actions.Route('/a/path', delegate, {}, 'function1');
 			rh.apply();
 			
 			expect(function1).toHaveBeenCalled();
@@ -25,7 +25,7 @@ describe('actions.Route', function () {
 
 		it('calls nested actions', function () {
 			
-			var rh = new actions.Route('/a/path', delegate, 'nested.function2');
+			var rh = new actions.Route('/a/path', delegate, {}, 'nested.function2');
 			rh.apply();
 
 			expect(function2).toHaveBeenCalled();

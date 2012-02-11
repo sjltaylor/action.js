@@ -1,27 +1,20 @@
 describe('actions', function () {
 	
-	var delegate;
-
-	/* spies are defined here so that their call status can be checked when the delegate has been cloaked */
-	var root 					= jasmine.createSpy('root')
-		, something 		= jasmine.createSpy('something')
-		, products			= jasmine.createSpy('products')
-		, things_within = jasmine.createSpy('nested: things.within')
-		, things_json		= jasmine.createSpy('nested: things.json');
+	var delegate, routeHelper;
 
 	beforeEach(function () {
 		
 		delegate = {
-			root: 		 root
-		, something: something
-		, products:  products
+			root: 		 jasmine.createSpy('root')
+		, something: jasmine.createSpy('something')
+		, products:  jasmine.createSpy('products')
 		, things: {
-				within: things_within
-			, json 	: things_json
+				within: jasmine.createSpy('nested: things.within')
+			, json 	: jasmine.createSpy('nested: things.json')
 			}
 		};
 
-		actions(delegate, {
+		routeHelper = actions(delegate, {
 			'/'																: 'root'
 		, '/something'											: 'something'
 		, '/products/:id/outlets/:outletId' : 'products'
@@ -48,18 +41,55 @@ describe('actions', function () {
 			}).toThrow();
 		});
 
-		it('returns the actions global', function () {
-			actions.reset();
-			expect(actions({}, {})).toBe(actions);
-		});
-
-		describe('cloaking the delegate', function () {
-			it('replaces each action function with a proxy that sets the rout and then calls the original', function () {
-				delegate.things.within();
-				expect(things_within).toHaveBeenCalled();
-				expect(window.location.pathname).toBe('/things/within');
+		describe('the returned routes helper', function () {
+			it('sets the url and calls the delegate', function () {
+				routeHelper.things.json(132);
+				expect(delegate.things.json).toHaveBeenCalled();
+				expect(window.location.pathname).toBe('/things/132.json');
 			});
 		})
+	});
+
+	describe('navigation behaviour', function () {
+		
+		it('allows me to go back to a previous page', function () {
+			actions.goto('/something');
+			actions.goto('/things/within');
+			history.back();
+
+			waits(500);
+
+			runs(function () {
+				expect(location.pathname).toBe('/something');
+			});
+		});
+
+		it('allows me to go forward to a page which I navigated back from', function () {
+			actions.goto('/something');
+			actions.goto('/things/within');
+			
+			history.back();
+			
+			waits(500);
+
+			runs(function () {
+				history.forward();
+			});
+
+			waits(500);
+
+			runs(function () {
+				expect(location.pathname).toBe('/things/within');
+			});
+		});
+
+		it('does not change the history legnth if I go back', function () {
+			actions.goto('/something');
+			actions.goto('/things/within');
+			var originalLength = history.length;
+			history.back();
+			expect(history.length).toBe(originalLength);
+		});
 	});
 
 	describe('.goto()', function () {
@@ -76,7 +106,7 @@ describe('actions', function () {
 
 		it('matches the appropriate route to run', function () {
 			actions.goto('/products/32/outlets/7765');
-			expect(products).toHaveBeenCalledWith('32', '7765');
+			expect(delegate.products).toHaveBeenCalledWith('32', '7765');
 			expect(window.location.pathname).toBe('/products/32/outlets/7765');
 		});
 
@@ -88,7 +118,7 @@ describe('actions', function () {
 
 		it('calls the target function', function () {
 			actions.goto('/');
-			expect(root).toHaveBeenCalled();
+			expect(delegate.root).toHaveBeenCalled();
 		});
 
 		it('interpolates arguments correctly', function () {
@@ -98,7 +128,7 @@ describe('actions', function () {
 
 		it('passes arguments to the route handler', function () {
 			var args;
-			something.andCallFake(function () {
+			delegate.something.andCallFake(function () {
 				args = arguments;
 			});
 
@@ -109,7 +139,27 @@ describe('actions', function () {
 
 		it('calls nested actions', function () {
 			actions.goto('/things/within');
-			expect(things_within).toHaveBeenCalled();
+			expect(delegate.things.within).toHaveBeenCalled();
+		});
+	});
+
+	describe('.run()', function () {
+		
+		it('does NOT change the current URL', function () {
+			var originalLocation = window.location.pathname;
+			actions.run('/something');
+			expect(window.location.pathname).toBe(originalLocation);
+		});
+
+		it('calls the corresponding route handler', function () {
+			actions.run('/products/32/outlets/7765');
+			expect(delegate.products).toHaveBeenCalledWith('32', '7765');
+		});
+
+		it('throws an error if the route does not match', function () {
+			expect(function () {
+				actions.run('/nowhere')
+			}).toThrow("Route not found: /nowhere");
 		});
 	});
 });

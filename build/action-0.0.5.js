@@ -18,27 +18,33 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.*/;actions = (function () {
 
-	var routeHandlers;
+	var routeHandlers, routesHelper;
+
+	function loadCurrentPath (event) {
+		loadCurrentPath._called = true;
+		actions.run(window.location.pathname);
+	}
 
 	function actions (delegate, routeActionMap) {
 		
 		if (routeHandlers) throw new Error('Routes already defined. actions() should only be called once between calls to actions.reset()');
 		routeHandlers = {};
+		routesHelper 	= {}; 
 
-		for(var route in routeActionMap) {
-			var action					 = routeActionMap[route];
-			routeHandlers[route] = new actions.Route(route, delegate, action);
+		for(var routeTemplate in routeActionMap) {
+			var action = routeActionMap[routeTemplate];
+			routeHandlers[routeTemplate] = new actions.Route(routeTemplate, delegate, routesHelper, action);
 		}
 
-		return actions;
+		return routesHelper;;
 	}
 
 	actions.reset = function () {
 		routeHandlers = null;
+		routesHelper  = null;
 	}
 
-	actions.goto = function () {
-
+	actions.run = function () {
 		var route 	= arguments[0]
 			, handler = routeHandlers[route]
 			, args 		= Array.prototype.slice.call(arguments, 1, arguments.length);
@@ -67,48 +73,79 @@ THE SOFTWARE.*/;actions = (function () {
 		}
 
 		route = handler.interpolate(args);
-		handler.apply(args);
-		history.pushState({}, '', route);
+		
+		handler.apply(args) || '';
+		
+		return route;
+	}	
+
+	actions.goto = function () {
+
+		var route = actions.run.apply(this, arguments);
+		
+		history.pushState({}, '', route)
+
+		return route;
 	}
 
 	actions.start = function () {
-		window.onload = function () {
-			actions.goto(window.location.pathname);
+		
+		if (routeHandlers) {
+			window.onpopstate = loadCurrentPath
+
+			if (/Firefox/.test(navigator.userAgent))
+			window.onload = function () {
+				loadCurrentPath();
+			}
 		}
 	}
 
 	return actions;
 })();
-
 ;actions.Route = (function () {
 	
 	var parameterRegex  					= /:([\w\d-]+)/
 		, parameterReplacementRegex = /:([\w\d-]+)/g;
 
-	function Route (routeTemplate, delegate, action) {
-		var rh = this;
+	function Route (routeTemplate, delegate, routesHelper, action) {
+		var route = this;
 
-		rh._routeTemplate  = routeTemplate;
-		rh._routeRegex		 = new RegExp('^' + routeTemplate.replace(parameterReplacementRegex, '([\\w\\d-]+)') + '$')
-		rh._context  			 = null;
-		rh._function 			 = delegate;
-		
-		action.split('.').forEach(function (memberName) {
-			rh._context  = rh._function;
-			rh._function = rh._context[memberName]; 
-		});
+		route._routeTemplate = routeTemplate;
+		route._routeRegex		 = new RegExp('^' + routeTemplate.replace(parameterReplacementRegex, '([\\w\\d-]+)') + '$')
+		route._delegate			 = delegate;
+		route._actionPath		 = action.split('.');
+
+		var memberName = route._actionPath[0];
+
+		for (var i = 0, j = 1, l = route._actionPath.length; j < l; i++, j++) {
+			routesHelper[memberName] = routesHelper[memberName] || {};
+			routesHelper = routesHelper[memberName];
+			memberName = route._actionPath[j];
+		}
+
+		routesHelper[memberName] = function () {
+			actions.goto.bind(actions, route._routeTemplate).apply(actions, arguments);
+		}
 	}
 
 	Route.prototype = {
 		apply: function (args) {
-			var rh = this;
-			rh._function.apply(rh._context, args);
-			return rh.interpolate(args);
+			var route 				 = this
+				// find the function and the object to which it belongs...
+				, actionContext  = null
+				, actionFunction = route._delegate;
+		
+			route._actionPath.forEach(function (memberName) {
+				actionContext   = actionFunction
+				actionFunction 	= actionContext[memberName];
+			});
+
+			return actionFunction.apply(actionContext, args);
 		}
 	, interpolate: function (args) {
-			var rh 	 				  = this
+			var route 	 				  = this
 				, args  				= args || []
-				, routeTemplate = rh._routeTemplate
+				, routeTemplate = route._routeTemplate
 			
 			for (var i = 0, l = args.length; i < l; i++) {
 				routeTemplate = routeTemplate.replace(parameterRegex, args[i]);

@@ -1,6 +1,6 @@
 ## How to use action.js to define routes for you application
 
-actions(app, {
+routesHelper = actions(app, {
 	'/'						: 'default'
 , '/things'			: 'things'
 , '/things/:id' : 'thing'
@@ -8,6 +8,7 @@ actions(app, {
 , '/warn'				: 'warnme'
 });
 
+-> delegate functions can return a title :)
 
 ## Limitations
 

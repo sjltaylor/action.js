@@ -1,0 +1,33 @@
+script
+	delegate = {
+		place1: function () {
+			console.warn('place1 loading');
+			var place2button = $('<button>').text('goto place 2');
+			place2button.click(function () {
+				delegate.place2();
+			});
+
+			$('body')
+				.append('this is place 1')
+				.append(place2button);
+		}
+	, place2: function () {
+			console.warn('place2 loading');
+			$('body').contents().remove().end()
+				.append('this is place 2');
+		}
+	}
+	
+	actions(delegate, {
+		'/spec/visual/back_and_forth': 'place1'
+	, '/place2': 'place2'
+	, '/place1': 'place1'
+	}).start();
+
+	window.onpopstate = function () {
+		console.warn(arguments);
+	}
+
+	delegate.place1();
+	delegate.place2();
+	delegate.back();
