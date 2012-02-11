@@ -20,6 +20,11 @@ THE SOFTWARE.*/;actions = (function () {
 
 	var routeHandlers;
 
+	function loadCurrentPath () {
+		loadCurrentPath._called = true;
+		actions.goto(window.location.pathname);
+	}
+
 	function actions (delegate, routeActionMap) {
 		
 		if (routeHandlers) throw new Error('Routes already defined. actions() should only be called once between calls to actions.reset()');
@@ -71,14 +76,15 @@ THE SOFTWARE.*/;actions = (function () {
 	}
 
 	actions.start = function () {
+		window.onpopstate = loadCurrentPath;
+
 		window.onload = function () {
-			actions.goto(window.location.pathname);
+			if (!loadCurrentPath._called) loadCurrentPath();
 		}
 	}
 
 	return actions;
 })();
-
 ;actions.Route = (function () {
 	
 	var parameterRegex  					= /:([\w\d-]+)/
