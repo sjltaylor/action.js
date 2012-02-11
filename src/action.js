@@ -7,6 +7,15 @@ actions = (function () {
 		actions.goto(window.location.pathname);
 	}
 
+	window.onpopstate = loadCurrentPath;
+	window.onload = function () {
+		// onpopstate fires after onload so if the browser (such as firefox)
+		// isnt going to invoke an onpopstate onload then we do it ourselves.
+		setTimeout(function () {
+			if (!loadCurrentPath._called) loadCurrentPath();
+		}, 5);
+	}
+
 	function actions (delegate, routeActionMap) {
 		
 		if (routeHandlers) throw new Error('Routes already defined. actions() should only be called once between calls to actions.reset()');
@@ -55,14 +64,6 @@ actions = (function () {
 
 		route = handler.interpolate(args);
 		handler.apply(args);
-	}
-
-	actions.start = function () {
-		window.onpopstate = loadCurrentPath;
-
-		window.onload = function () {
-			if (!loadCurrentPath._called) loadCurrentPath();
-		}
 	}
 
 	return actions;
