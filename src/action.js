@@ -11,6 +11,8 @@ actions = (function () {
 			var action					 = routeActionMap[route];
 			routeHandlers[route] = new actions.Route(route, delegate, action);
 		}
+
+		return actions;
 	}
 
 	actions.reset = function () {
@@ -48,7 +50,6 @@ actions = (function () {
 
 		route = handler.interpolate(args);
 		handler.apply(args);
-		history.pushState({}, '', route);
 	}
 
 	actions.start = function () {

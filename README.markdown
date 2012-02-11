@@ -1,6 +1,6 @@
 ## How to use action.js to define routes for you application
 
-actions = action.routes(app, {
+actions(app, {
 	'/'						: 'default'
 , '/things'			: 'things'
 , '/things/:id' : 'thing'

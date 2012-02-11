@@ -2,15 +2,22 @@ describe('actions', function () {
 	
 	var delegate;
 
+	/* spies are defined here so that their call status can be checked when the delegate has been cloaked */
+	var root 					= jasmine.createSpy('root')
+		, something 		= jasmine.createSpy('something')
+		, products			= jasmine.createSpy('products')
+		, things_within = jasmine.createSpy('nested: things.within')
+		, things_json		= jasmine.createSpy('nested: things.json');
+
 	beforeEach(function () {
 		
 		delegate = {
-			root: 		 jasmine.createSpy('root')
-		, something: jasmine.createSpy('something')
-		, products:  jasmine.createSpy('products')
+			root: 		 root
+		, something: something
+		, products:  products
 		, things: {
-				within: jasmine.createSpy('nested: things.within')
-			, json 	: jasmine.createSpy('nested: things.json')
+				within: things_within
+			, json 	: things_json
 			}
 		};
 
@@ -40,6 +47,19 @@ describe('actions', function () {
 				actions();
 			}).toThrow();
 		});
+
+		it('returns the actions global', function () {
+			actions.reset();
+			expect(actions({}, {})).toBe(actions);
+		});
+
+		describe('cloaking the delegate', function () {
+			it('replaces each action function with a proxy that sets the rout and then calls the original', function () {
+				delegate.things.within();
+				expect(things_within).toHaveBeenCalled();
+				expect(window.location.pathname).toBe('/things/within');
+			});
+		})
 	});
 
 	describe('.goto()', function () {
@@ -56,7 +76,7 @@ describe('actions', function () {
 
 		it('matches the appropriate route to run', function () {
 			actions.goto('/products/32/outlets/7765');
-			expect(delegate.products).toHaveBeenCalledWith('32', '7765');
+			expect(products).toHaveBeenCalledWith('32', '7765');
 			expect(window.location.pathname).toBe('/products/32/outlets/7765');
 		});
 
@@ -68,7 +88,7 @@ describe('actions', function () {
 
 		it('calls the target function', function () {
 			actions.goto('/');
-			expect(delegate.root).toHaveBeenCalled();
+			expect(root).toHaveBeenCalled();
 		});
 
 		it('interpolates arguments correctly', function () {
@@ -78,7 +98,7 @@ describe('actions', function () {
 
 		it('passes arguments to the route handler', function () {
 			var args;
-			delegate.something.andCallFake(function () {
+			something.andCallFake(function () {
 				args = arguments;
 			});
 
@@ -89,7 +109,7 @@ describe('actions', function () {
 
 		it('calls nested actions', function () {
 			actions.goto('/things/within');
-			expect(delegate.things.within).toHaveBeenCalled();
+			expect(things_within).toHaveBeenCalled();
 		});
 	});
 });

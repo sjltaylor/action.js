@@ -4,29 +4,40 @@ actions.Route = (function () {
 		, parameterReplacementRegex = /:([\w\d-]+)/g;
 
 	function Route (routeTemplate, delegate, action) {
-		var rh = this;
+		var route = this;
 
-		rh._routeTemplate  = routeTemplate;
-		rh._routeRegex		 = new RegExp('^' + routeTemplate.replace(parameterReplacementRegex, '([\\w\\d-]+)') + '$')
-		rh._context  			 = null;
-		rh._function 			 = delegate;
+		route._routeTemplate = routeTemplate;
+		route._routeRegex		 = new RegExp('^' + routeTemplate.replace(parameterReplacementRegex, '([\\w\\d-]+)') + '$')
+		
+		// find the function and the object to which it belongs...
+		route._delegate  	= null;
+		route._function   = delegate;
 		
 		action.split('.').forEach(function (memberName) {
-			rh._context  = rh._function;
-			rh._function = rh._context[memberName]; 
+			route._delegate   = route._function;
+			route._function 	= route._delegate[memberName];
+			route._memberName = memberName; 
 		});
+
+		// replace the function with a wrapper
+		route._delegate[route._memberName] = function () {
+			history.pushState({}, '', route.interpolate(arguments));
+			route._function.apply(route._delegate, arguments);
+		};
+
+		route._functionWrapper = route._delegate[route._memberName];
 	}
 
 	Route.prototype = {
 		apply: function (args) {
-			var rh = this;
-			rh._function.apply(rh._context, args);
-			return rh.interpolate(args);
+			var route = this;
+			route._functionWrapper.apply(route._delegate, args);
+			return route.interpolate(args);
 		}
 	, interpolate: function (args) {
-			var rh 	 				  = this
+			var route 	 				  = this
 				, args  				= args || []
-				, routeTemplate = rh._routeTemplate
+				, routeTemplate = route._routeTemplate
 			
 			for (var i = 0, l = args.length; i < l; i++) {
 				routeTemplate = routeTemplate.replace(parameterRegex, args[i]);

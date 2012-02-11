@@ -29,6 +29,8 @@ THE SOFTWARE.*/;actions = (function () {
 			var action					 = routeActionMap[route];
 			routeHandlers[route] = new actions.Route(route, delegate, action);
 		}
+
+		return actions;
 	}
 
 	actions.reset = function () {
