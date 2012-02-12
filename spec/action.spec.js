@@ -7,6 +7,7 @@ describe('actions', function () {
 		delegate = {
 			root: 		 jasmine.createSpy('root')
 		, something: jasmine.createSpy('something')
+		, trailing:  jasmine.createSpy('trailing')
 		, products:  jasmine.createSpy('products')
 		, things: {
 				within: jasmine.createSpy('nested: things.within')
@@ -17,6 +18,7 @@ describe('actions', function () {
 		routeHelper = actions(delegate, {
 			'/'																: 'root'
 		, '/something'											: 'something'
+		, '/trailing/'											: 'trailing'
 		, '/products/:id/outlets/:outletId' : 'products'
 		, '/things/within'									: 'things.within'
 		, '/things/:id.json'								: 'things.json'
@@ -97,6 +99,18 @@ describe('actions', function () {
 		it('sets the url of the page as a new location', function () {
 			actions.goto('/something');
 			expect(window.location.pathname).toBe('/something');
+		});
+
+		it('matches route without a trailing slash with a pathname that has a trailing slash', function () {
+			actions.goto('/something/');
+			expect(window.location.pathname).toBe('/something');
+			expect(delegate.something).toHaveBeenCalled();
+		});
+
+		it('matches a route with a trailing slash with a pathname that does not have a trailing slash', function () {
+			actions.goto('/trailing');
+			expect(window.location.pathname).toBe('/trailing');
+			expect(delegate.trailing).toHaveBeenCalled();
 		});
 
 		it('allows for filetype extensions in the path', function () {

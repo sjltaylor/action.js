@@ -1,10 +1,15 @@
 actions = (function () {
 
-	var routeHandlers, routesHelper;
+	var routeHandlers, routesHelper, pathNormalizationRegex = /^(((.*)?[^\/])*)[\/]?$/;
 
 	function loadCurrentPath (event) {
 		loadCurrentPath._called = true;
 		actions.run(window.location.pathname);
+	}
+
+	function normalizePath (routeTemplate) {
+		// removes any root or trailing slash
+		return pathNormalizationRegex.exec(routeTemplate)[1];
 	}
 
 	function actions (delegate, routeActionMap) {
@@ -14,11 +19,14 @@ actions = (function () {
 		routesHelper 	= {}; 
 
 		for(var routeTemplate in routeActionMap) {
+			
 			var action = routeActionMap[routeTemplate];
+			
+			routeTemplate = normalizePath(routeTemplate);
 			routeHandlers[routeTemplate] = new actions.Route(routeTemplate, delegate, routesHelper, action);
 		}
 
-		return routesHelper;;
+		return routesHelper;
 	}
 
 	actions.reset = function () {
@@ -27,7 +35,7 @@ actions = (function () {
 	}
 
 	actions.run = function () {
-		var route 	= arguments[0]
+		var route 	= normalizePath(arguments[0])
 			, handler = routeHandlers[route]
 			, args 		= Array.prototype.slice.call(arguments, 1, arguments.length);
 		
