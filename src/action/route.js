@@ -19,8 +19,10 @@ actions.Route = (function () {
 			memberName = route._actionPath[j];
 		}
 
-		routesHelper[memberName] = function () {
-			actions.goto.bind(actions, route._routeTemplate).apply(actions, arguments);
+		if (typeof routesHelper[memberName] === 'undefined') {
+			routesHelper[memberName] = function () {
+				actions.goto.bind(actions, route._routeTemplate).apply(actions, arguments);
+			}
 		}
 	}
 

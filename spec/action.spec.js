@@ -52,6 +52,31 @@ describe('actions', function () {
 		})
 	});
 
+	describe('defining many paths for the same action', function () {
+		
+		var app, routeHelper;
+
+		beforeEach(function () {
+			actions.reset();
+			
+			app = {
+				actionA: jasmine.createSpy('action A')
+			};
+
+			routeHelper = actions(app, {
+				'/path1': 'actionA'
+			, '/path2': 'actionA'
+			});
+		})
+
+		describe('route helper', function () {
+			it('sets the path to the first matching path when calling an action', function () {
+				routeHelper.actionA();
+				expect(window.location.pathname).toBe('/path1');
+			});
+		});
+	});
+
 	describe('navigation behaviour', function () {
 		
 		it('allows me to go back to a previous page', function () {
