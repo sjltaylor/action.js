@@ -9,7 +9,7 @@
 
 action.js is a javascript framework for push state routing intended for greenfield apps.
 
-## How to use action.js to define routes for you application
+## How to use action.js to define routes for your application
 
     routesHelper = actions(app, {
     	'/'						: 'default'
